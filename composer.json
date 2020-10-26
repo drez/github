@@ -1,7 +1,11 @@
 {
 	"name": "opauth/github",
 	"description": "GitHub authentication strategy for Opauth",
-	"keywords": ["authentication","auth","github"],
+	"keywords": [
+		"authentication",
+		"auth",
+		"github"
+	],
 	"homepage": "http://opauth.org",
 	"license": "MIT",
 	"authors": [
@@ -13,7 +17,7 @@
 	],
 	"require": {
 		"php": ">=5.2.0",
-		"opauth/opauth": ">=0.4.0"
+		"opauth/opauth": "dev-switch_2_curl"
 	},
 	"autoload": {
 		"psr-0": {
