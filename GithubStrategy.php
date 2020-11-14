@@ -27,7 +27,7 @@ class GithubStrategy extends OpauthStrategy
 	/**
 	 * Optional config keys, without predefining any default values.
 	 */
-	public $optionals = array('redirect_uri', 'scope', 'state');
+	public $optionals = array('redirect_uri', 'scope', 'state', 'app_name');
 
 	/**
 	 * Optional config keys with respective default values, listed as associative arrays
@@ -128,10 +128,24 @@ class GithubStrategy extends OpauthStrategy
 	 */
 	private function user($access_token)
 	{
-		$user = $this->serverGet('https://api.github.com/user', array('access_token' => $access_token), ['http' => ['header' => ["Authorization: token " . $access_token]]], $headers);
+		$user = $this->serverGet('https://api.github.com/user', array('access_token' => $access_token), ['http' =>
+		['header' =>  ["Authorization: token " . $access_token, "User-Agent: " . $this->strategy['app_name']]]], $headers);
 
 		if (!empty($user)) {
-			return $this->recursiveGetObjectVars(json_decode($user));
+			if (json_decode($user)) {
+				return $this->recursiveGetObjectVars(json_decode($user));
+			} else {
+				$error = array(
+					'code' => 'userinfo_error',
+					'message' => $user,
+					'raw' => array(
+						'response' => $user,
+						'headers' => $headers
+					)
+				);
+
+				$this->errorCallback($error);
+			}
 		} else {
 			$error = array(
 				'code' => 'userinfo_error',
