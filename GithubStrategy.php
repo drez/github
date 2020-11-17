@@ -97,6 +97,11 @@ class GithubStrategy extends OpauthStrategy
 				$this->mapProfile($user, 'location', 'info.location');
 				$this->mapProfile($user, 'url', 'info.urls.github_api');
 
+				// if the primary email is not set in the profile, no email will be sent
+				if ($user['email'] == null) {
+					$user['email'] = $this->userEmail($results['access_token']);
+				}
+
 				$this->callback();
 			} else {
 				$error = array(
@@ -134,6 +139,53 @@ class GithubStrategy extends OpauthStrategy
 		if (!empty($user)) {
 			if (json_decode($user)) {
 				return $this->recursiveGetObjectVars(json_decode($user));
+			} else {
+				$error = array(
+					'code' => 'userinfo_error',
+					'message' => $user,
+					'raw' => array(
+						'response' => $user,
+						'headers' => $headers
+					)
+				);
+
+				$this->errorCallback($error);
+			}
+		} else {
+			$error = array(
+				'code' => 'userinfo_error',
+				'message' => 'Failed when attempting to query GitHub v3 API for user information',
+				'raw' => array(
+					'response' => $user,
+					'headers' => $headers
+				)
+			);
+
+			$this->errorCallback($error);
+		}
+	}
+
+	/**
+	 * Queries GitHub v3 API for emails
+	 *
+	 * @param string $access_token 
+	 * @return array Parsed JSON results
+	 */
+	private function userEmail($access_token)
+	{
+		$user = $this->serverGet('https://api.github.com/user/emails', array('access_token' => $access_token), ['http' =>
+		['header' =>  ["Authorization: token " . $access_token, "User-Agent: " . $this->strategy['app_name']]]], $headers);
+
+		if (!empty($user)) {
+			if (json_decode($user)) {
+				$emails = $this->recursiveGetObjectVars(json_decode($user));
+				foreach ($emails as $email) {
+					$lastemail = $email['email'];
+					if ($email['primary'] = '1') {
+						return $lastemail;
+					}
+				}
+				return $lastemail;
 			} else {
 				$error = array(
 					'code' => 'userinfo_error',
