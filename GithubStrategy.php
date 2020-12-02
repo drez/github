@@ -97,9 +97,9 @@ class GithubStrategy extends OpauthStrategy
 				$this->mapProfile($user, 'location', 'info.location');
 				$this->mapProfile($user, 'url', 'info.urls.github_api');
 
-				// if the primary email is not set in the profile, no email will be sent
 				if ($user['email'] == null) {
 					$user['email'] = $this->userEmail($results['access_token']);
+					$this->auth['info']['email'] = $user['email'];
 				}
 
 				$this->callback();
@@ -166,7 +166,7 @@ class GithubStrategy extends OpauthStrategy
 	}
 
 	/**
-	 * Queries GitHub v3 API for emails
+	 * Queries GitHub v3 API for user info
 	 *
 	 * @param string $access_token 
 	 * @return array Parsed JSON results
