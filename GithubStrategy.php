@@ -69,6 +69,7 @@ class GithubStrategy extends OpauthStrategy
 				'client_id' => $this->strategy['client_id'],
 				'client_secret' => $this->strategy['client_secret'],
 				'redirect_uri' => $this->strategy['redirect_uri'],
+				'scope' => 'user, user:email'
 			);
 			if (!empty($this->strategy['state'])) $params['state'] = $this->strategy['state'];
 
@@ -134,7 +135,8 @@ class GithubStrategy extends OpauthStrategy
 	private function user($access_token)
 	{
 		$user = $this->serverGet('https://api.github.com/user', array('access_token' => $access_token), ['http' =>
-		['header' =>  ["Authorization: token " . $access_token, "User-Agent: " . $this->strategy['app_name']]]], $headers);
+		['header' =>  [	"Authorization: token " . $access_token, 
+						"User-Agent: " . $this->strategy['app_name']]]], $headers);
 
 		if (!empty($user)) {
 			if (json_decode($user)) {
@@ -173,35 +175,27 @@ class GithubStrategy extends OpauthStrategy
 	 */
 	private function userEmail($access_token)
 	{
-		$user = $this->serverGet('https://api.github.com/user/emails', array('access_token' => $access_token), ['http' =>
-		['header' =>  ["Authorization: token " . $access_token, "User-Agent: " . $this->strategy['app_name']]]], $headers);
+		$user = $this->serverGet('https://api.github.com/user/emails', null, ['http' =>
+		['header' =>  [	"Authorization: token " . $access_token,
+						 "User-Agent: " . $this->strategy['app_name'],
+						 "Accept: application/vnd.github.v3+json"
+						 ]]], $headers);
 
-		if (!empty($user)) {
-			if (json_decode($user)) {
-				$emails = $this->recursiveGetObjectVars(json_decode($user));
-				foreach ($emails as $email) {
-					$lastemail = $email['email'];
-					if ($email['primary'] = '1') {
-						return $lastemail;
-					}
+		$userData = json_decode($user, true);
+		if (!empty($userData) && empty($userData['message'])) {
+			$emails = $this->recursiveGetObjectVars(json_decode($user));
+			foreach ($emails as $email) {
+				$lastemail = $email['email'];
+				if ($email['primary'] = '1') {
+					return $lastemail;
 				}
-				return $lastemail;
-			} else {
-				$error = array(
-					'code' => 'userinfo_error',
-					'message' => $user,
-					'raw' => array(
-						'response' => $user,
-						'headers' => $headers
-					)
-				);
-
-				$this->errorCallback($error);
 			}
+			return $lastemail;
 		} else {
 			$error = array(
 				'code' => 'userinfo_error',
-				'message' => 'Failed when attempting to query GitHub v3 API for user information',
+				'message' => ['Failed when attempting to query GitHub v3 API for user information. Your email is probably private.',
+								$userData['message'].":".$userData['documentation_url']],
 				'raw' => array(
 					'response' => $user,
 					'headers' => $headers
